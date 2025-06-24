@@ -15,20 +15,9 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 def index():
     return render_template('index.html')
 
-# Endpoint 1: Generate unique code from text
-@app.route('/generate-code', methods=['POST'])
-def generate_code():
-    data = request.get_json()
-    input_text = data.get('text')
-    if not input_text:
-        return jsonify({'error': 'No text provided'}), 400
-
-    unique_code = uuid.uuid4().hex  # Generate unique code
-    return jsonify({'unique_code': unique_code})
-
-# Endpoint 2: Convert DOCX to PDF
-@app.route('/convert-docx', methods=['POST'])
-def convert_docx():
+# Universal conversion endpoint
+@app.route('/convert-to-pdf', methods=['POST'])
+def convert_to_pdf():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
 
@@ -36,20 +25,20 @@ def convert_docx():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
 
-    if not file.filename.endswith('.docx'):
-        return jsonify({'error': 'Only DOCX files are allowed'}), 400
+    allowed_extensions = ('.docx', '.xlsx', '.pptx')
+    if not file.filename.endswith(allowed_extensions):
+        return jsonify({'error': f'Only {allowed_extensions} files are allowed'}), 400
 
     # Save uploaded file
     input_path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(input_path)
 
-    # Detect platform and set correct LibreOffice path
+    # Detect platform and set LibreOffice path
     if platform.system() == "Windows":
         libreoffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
     else:
         libreoffice_path = "libreoffice"
 
-    # Convert using LibreOffice
     try:
         subprocess.run([
             libreoffice_path, '--headless', '--convert-to', 'pdf', '--outdir',
